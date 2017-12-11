@@ -1,0 +1,9 @@
+---
+title: "Data Reanalysis Assignment"
+author: Andrew Mark
+output: html_document
+---
+#Preliminaries
+You will need to install and launch the fallowing packages:
+
+#Paper Background
