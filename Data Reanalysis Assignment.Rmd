@@ -4,6 +4,110 @@ author: Andrew Mark
 output: html_document
 ---
 #Preliminaries
-You will need to install and launch the fallowing packages:
+You will need to install and launch the fallowing packages: [stringr](https://cran.r-project.org/web/packages/stringr/stringr.pdf), [knitr](https://cran.r-project.org/web/packages/knitr/knitr.pdf), [raster](https://cran.r-project.org/web/packages/raster/vignettes/Raster.pdf), [rasterVis](https://cran.r-project.org/web/packages/rasterVis/rasterVis.pdf), and [Bchron](https://cran.r-project.org/web/packages/Bchron/Bchron.pdf).  You will also needd to read Oreto García Puchol, Agustín Diez Castillo, and Salvador Pardo-Gordó's paper [“New insights into the neolithisation process in southwest Europe according to spatial density analysis from calibrated radiocarbon dates”](https://link.springer.com/article/10.1007%2Fs12520-017-0498-1#SupplementaryMaterial), and load that into R using the [curl](https://cran.r-project.org/web/packages/curl/curl.pdf) command and import the data from [Puchol et al 2017 data.csv](https://raw.githubusercontent.com/andym5780/data-reanalysis-assignment/master/Puchol%20et%20al%202017%20data.csv).
+
+All these packages should be launched
+```{r}
+library(stringr)
+library(Bchron)
+library(knitr)
+library(raster)
+library(rasterVis)
+library(curl)
+```
 
 #Paper Background
+
+In Puchol et al’s 2017 article “New insights into the neolithisation process in southwest Europe according to spatial density analysis from calibrated radiocarbon dates,” their goal is to map the neolithisation, the transition from the Late Mesolithic to the Early Neolithic, of the Iberian Peninsula by looking at sites associated with the earliest Neolithic processes such the introduction of regular blade knapping technology, and radiocarbon dates from each site. They compiled a database with all of the known sites and radiocarbon dates in the peninsula that are within range of 8000 BP to 5500 BP.
+
+After collecting all the data points, Puchol et al (2017) had a total of 1276 uncalibrated radiocarbon dates, they then filtered out any dates which could have been affected by the reservoir effect, or any dates which had a standard deviation of 150 years. This left them with 834 uncalibrated radiocarbon dates with a standard deviation of 59.9. They then calibrated these dates with the Bchron package in R using the IntCal13 calibration curve. Next, they binned the radiocarbon dates in groups of 200-year intervals. After that the bins were normalized and the values were fit to a smoothed Gaussian isotropic kernel using the density.ppp command from the R package spatstat. Finally, Puchol et al (2017) used the raster package and the rasterVis package to produce maps of the special and quantitative distribution of radiocarbon dates along with chronological maps representing density of radiocarbon dates.
+
+Puchol et al (2017) discuss their paper findings by stating that through their analyses, it becomes evident that when mapping the neolithisation of Iberia a general east/west route can be suggested. There is also a gradual increase of radiocarbon dates in association with Neolithic dates starting around 7000 cal BC. Their maps also show that there seems to be some significant importance between the Mediterranean coastline and the expansion of Neolithic technology. Puchol et al Concludes the paper by suggesting that this map can help create an open debate between whether the neolithisation of Iberian was from demic diffusion, cultural diffusion, or a combination of the two.
+
+#My Reanalyses
+
+
+For my reanalyses of Puchol et al (2017), I will first calculate the average standard deviation from the dataset they provide. In this article Puchol et al (2017) use 864 dates, but only provide 165 to the reader. Because if this, I will calculate the standard deviation and use an F-test to see if there is a significant difference between the stander deviation I calculate from the 165 dates compared to the 864 dates. Next I will use calibrate the radiocarbon dates using the Bchron package which will let me calibrate the 165 radiocarbon data using the intcal13 calibration curve. Finally I will recreate Puchol et al’s (2017) spatial and quantitative distribution of radiocarbon dates using the raster and rasterVis packages.
+
+#Imported Database
+
+```{r}
+f <- curl("https://raw.githubusercontent.com/andym5780/data-reanalysis-assignment/master/Puchol%20et%20al%202017%20data.csv")
+orig <- read.csv(f, header = TRUE)
+head(orig)
+```
+
+Here I have brought in the original data used by Pulchol et al (2017). They have only provided 165 dates despite the fact that they did these calculation with 834 dates because of this, there might  be differenced in my results compared to theirs. 
+
+#1 Testing Significant Differences in the Standard Deviations
+Bellow I will test to see if there is a significant difference in the average standard deviations of the original dataset with 834 site and the average standard deviation found in this dataset with 165 dates. I will do this by using an F-test regarding two population standard deviations. I will us a right tailed test to see if the difference is significant because it would seem like if these values are different, then the standard deviation for sd1, which comes from the 834 dates, would be larger. Here my null hypothesis is sd1=sd2, and my alternative hypothesis is sd1>sd2 where sd1 comes from the 834 dates and sd2 comes from the 165 dates.
+
+The first standard deviation, sd1, comes from within Pulchol et al (2017). They state that the average standard deviation is 59.9 so
+
+```{r}
+sd1 <- 59.9
+```
+
+Next, I will calculate the average standard deviation from the 165 dates.
+
+```{r}
+x <- sum(orig$SD)
+sd2 <-x/165
+sd2
+```
+
+So the average standard deviation from 165 dates is 43.25455. Next I will conduct the F-test.
+
+```{r}
+Fo <- sd1/sd2
+Fo
+```
+
+Here our Fo test statistic is 1.384826. In order to test whether or not I should reject our null hypothesis we must see if this Fo is greater than our test statistic. Next we will calculate our critical value at a 95% confidence level, with the degrees of freedom being 833 for df1 and 164 for df2 so
+
+```{r}
+df1 <- 833
+df2 <- 164
+cv <- qf(.95, df1=df1, df2=df2)
+cv
+```
+
+Here the Fo is greater than cv, so we reject the null hypothesis and say that there is significant evidence to suggest that average standard deviation for the 834 dates is greater than the 165 dates at the alpha equals 0.05 level of significant, and that this can cause there to be a difference in results compared to the original paper.
+
+#2 Calibrating the Radiocarbon Dates
+Next I will calibrate the 165 radiocarbon
+
+```{r}
+orig$CalibrationCurvesUsed <- "intcal13"
+```
+
+Here I have created a new columns in the dataset so that I can used the columns to calculate the calibration curve instead of writing out intcal13 165 times when I am calibrating the dates
+
+```{r}
+head(orig)
+```
+
+Above this you can see that a new column named CalibrationCurvesUsed has been added. It which contains the words incal13 in every row, and this will be the calibration curve used for the radiocarbon dates. 
+
+```{r}
+ages2 = BchronCalibrate(ages=orig$Date.BP
+,ageSds=orig$SD, calCurves= orig$CalibrationCurvesUsed)
+```
+Here I have calibrated the radiocarbon dates using the BchronCalibrate command
+
+```{r}
+summary(ages2)
+```
+
+Here is a list of all of the 165 calibrated radiocarbon dates and the 95% Highest density regions. These are the regions which are most likely to contain the true date.
+
+#Spatial and Quantitative Distribution of Radiocarbon Dates 
+
+
+
+
+
+
+
+
+
