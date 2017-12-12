@@ -4,7 +4,7 @@ author: Andrew Mark
 output: html_document
 ---
 #Preliminaries
-You will need to install and launch the fallowing packages: [stringr](https://cran.r-project.org/web/packages/stringr/stringr.pdf), [knitr](https://cran.r-project.org/web/packages/knitr/knitr.pdf), [ggplot2](https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf), [ggmap](https://cran.r-project.org/web/packages/ggmap/ggmap.pdf), and [Bchron](https://cran.r-project.org/web/packages/Bchron/Bchron.pdf).  You will also needd to read Oreto García Puchol, Agustín Diez Castillo, and Salvador Pardo-Gordó's paper [“New insights into the neolithisation process in southwest Europe according to spatial density analysis from calibrated radiocarbon dates”](https://link.springer.com/article/10.1007%2Fs12520-017-0498-1#SupplementaryMaterial), and load that into R using the [curl](https://cran.r-project.org/web/packages/curl/curl.pdf) command and import the data from [Puchol et al 2017 data.csv](https://raw.githubusercontent.com/andym5780/data-reanalysis-assignment/master/Puchol%20et%20al%202017%20data.csv).
+You will need to install and launch the fallowing packages: [stringr](https://cran.r-project.org/web/packages/stringr/stringr.pdf), [knitr](https://cran.r-project.org/web/packages/knitr/knitr.pdf), [ggplot2](https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf), [ggmap](https://cran.r-project.org/web/packages/ggmap/ggmap.pdf), and [Bchron](https://cran.r-project.org/web/packages/Bchron/Bchron.pdf).  You will also needd to read Oreto García Puchol, Agustín Diez Castillo, and Salvador Pardo-Gordó's paper [“New insights into the neolithisation process in southwest Europe according to spatial density analysis from calibrated radiocarbon dates”](https://link.springer.com/article/10.1007%2Fs12520-017-0498-1#SupplementaryMaterial), and load that into R using the [curl](https://cran.r-project.org/web/packages/curl/curl.pdf) command and import the data from [Puchol et al (2017) edited data.csv](https://github.com/andym5780/data-reanalysis-assignment/blob/master/Puchol%20et%20al%20(2017)%20edited%20data.csv) and [sites_iberian_peninsula_jaa.kmz](https://github.com/andym5780/data-reanalysis-assignment/blob/master/sites_iberian_peninsula_jaa.kmz).
 
 All these packages should be launched
 ```{r}
@@ -27,7 +27,7 @@ Puchol et al (2017) discuss their paper findings by stating that through their a
 #My Reanalyses
 
 
-For my reanalyses of Puchol et al (2017), I will first calculate the average standard deviation from the dataset they provide. In this article Puchol et al (2017) use 864 dates, but only provide 165 to the reader. Because if this, I will calculate the standard deviation and use an F-test to see if there is a significant difference between the stander deviation I calculate from the 165 dates compared to the 864 dates. Next I will use calibrate the radiocarbon dates using the Bchron package which will let me calibrate the 165 radiocarbon data using the intcal13 calibration curve. Finally I will recreate Puchol et al’s (2017) spatial and quantitative distribution of radiocarbon dates using the raster and rasterVis packages.
+For my reanalyses of Puchol et al (2017), I will first calculate the average standard deviation from the dataset they provide. In this article Puchol et al (2017) use 864 dates, but only provide 165 to the reader. Because if this, I will calculate the standard deviation and use an F-test to see if there is a significant difference between the stander deviation I calculate from the 165 dates compared to the 864 dates. Next, I will recreate Puchol et al’s (2017) spatial and quantitative distribution of radiocarbon dates map. Finaly, I will use calibrate the radiocarbon dates using the Bchron package which will let me calibrate the 165 radiocarbon data using the intcal13 calibration curve.
 
 #Imported Database
 
@@ -76,7 +76,47 @@ cv
 
 Here the Fo is greater than cv, so we reject the null hypothesis and say that there is significant evidence to suggest that average standard deviation for the 834 dates is greater than the 165 dates at the alpha equals 0.05 level of significant, and that this can cause there to be a difference in results compared to the original paper.
 
-#2 Calibrating the Radiocarbon Dates
+
+
+#2 Spatial and Quantitative Distribution of Radiocarbon Dates Map 
+
+##My Spatial and Quantitative Distribution of Radiocarbon Dates Map 
+
+In this part of the project I will attempted to recreate Puchol et al's (2017) spatial and quantitative distribution of radiocarbon dates map. Instead of using the [raster](https://cran.r-project.org/web/packages/raster/vignettes/Raster.pdf) and the [rasterVis](https://cran.r-project.org/web/packages/rasterVis/rasterVis.pdf) packages like they did, I will use the [ggplot2](https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf) and [ggmap](https://cran.r-project.org/web/packages/ggmap/ggmap.pdf). I chose to use the packages instead of the ones used by Puchol et al (2017) because the ggmap package does not require one to download a shapefile and then load it into R markdown, and because the shapefile I found that appeared to be the same as the one used by Puchol et al (2017) required me to purchase it. I tried using a similar, free to download shape file first, but it resulted in an error when I uploaded the shapefile to GitHub and then tried to use the curl command to input it into R markdown. The ggmap package uses the information from Google Maps to create maps and therefore does not require a shapefile to be downloaded.
+
+```{r}
+size <- make_bbox(lon = orig$Longitude, lat = orig$Latitude, f = .1)
+```
+
+Here I have set the parameters for how large my map will be by using the latitude and longitude from the orig dataframe. This command will make sure that the map is an appropriate size and will not produce something too large or too small. 
+
+```{r}
+sq_map <- get_map(location = size, maptype = "satellite", source = "google")
+```
+
+Here the get_map command generates will retrieve a map, in this case from Google Maps because I told it to by setting source equal to “google”, and it will be a hybrid between a satellite map and a terrain map. The map will be fitted to the dimensions specified with the make_bbox command
+
+```{r}
+ggmap(sq_map) + geom_point(data = orig, mapping = aes(x = orig$Longitude, y = orig$Latitude))
+```
+
+Here I have imported the map of the Iberian Peninsula and added the sites where the 165 radiocarbon dates were sampled from. As one can see there are not 165 individual sites because some site have multiple dates. The dataset that Puchol et al (2017) gave contains only 49 site, while their paper indicates they used 239 when conducting their study. This difference in site size may cause the spatial and quantitative distribution of radiocarbon dates map to look slightly different. 
+
+```{r}
+RadiocarbonDatesPerSites <- orig$Radiocarbon.sites
+
+ggmap(sq_map) + geom_point(data = orig, mapping = aes(x = orig$Longitude, y = orig$Latitude, color = RadiocarbonDatesPerSites, size = RadiocarbonDatesPerSites))
+```
+
+Above is my version of the spatial and quantitative distribution of radiocarbon dates map. I set the column orig$Radiocarbon.sites equal to the variable RadiocarbonDatesPerSites so that this title would appear in the legend. By setting both color and size equal to RadiocarbonDatesPerSites in the geom_point command I was able to make it so that the color of the point and the size of the point correlates to the amount of radiocarbon dates taken from the site. Here the larger the point and the lighter the color the more radiocarbon dates were taken from the site. As you can see from the color legend the maximum number of radiocarbon dates taken from a sight was just below 15. I will now compare this to the spatial and quantitative distribution of radiocarbon dates map created by Puchol et al (2017).
+
+##Puchol et al (2017) Spatial and Quantitative Distribution of Radiocarbon Dates Map
+
+<img src="img/Fig-2.jpg" width="500px"/>
+
+The first noticeable difference is the color differences between the maps. This is because Puchol et al (2017) used a personally downloaded shapefile and the raster and rasterVis packages as I have mentioned earlier. The next major difference is that my map has less points then their map does. This is due to the fact that Puchol et al (2017) only provided 165 date correlating to 49 site. This has also been discussed earlier. The final difference is the size of my points compared to Puchol et al (2017). Some of the largest points on my map are the smaller points on their map. This is again due to the lack of sites Puchol et al (2017) included in the supplementary dataset. In their data, highest ratio of radiocarbon dates to site was 14 while in the dataset used by Puchol et al (2017) when they generated their map it appears to be around 33.  Therefore my highest ratio is only halfway to their ratio which is why my largest points are some of their smaller points. Besides these small differences the maps are quite similar and can effective by considered the same map just with different amounts of data points.
+
+#3 Calibrating the Radiocarbon Dates
 Next I will calibrate the 165 radiocarbon
 
 ```{r}
@@ -97,39 +137,15 @@ ages2 = BchronCalibrate(ages=orig$Date.BP
 ```
 Here I have calibrated the radiocarbon dates using the BchronCalibrate command
 
+Below is a list of all of the 165 calibrated radiocarbon dates and the 95% Highest density regions. These are the regions which are most likely to contain the true date.
+
+By calibrating all of the radiocarbon dates, Puchol et al (2017) were able to then create multiple density maps spanning from 7400 to 4200 cal BC. This allowed them to then make general assumptions about the neolithisation of Iberia. If they provided my with the 834 dates and 239 sites I would try to recreate some of these density maps, but with the 165 dates and  49 sites my maps would look nothing like theirs. While it is helpful that they provided some of their data and preformed all of their calculations in R, it would be more helpful if they provided all of their data so that others to run their experiments. Below are the calibrated dates.
+
 ```{r}
 summary(ages2)
 ```
 
-Here is a list of all of the 165 calibrated radiocarbon dates and the 95% Highest density regions. These are the regions which are most likely to contain the true date.
 
-#Spatial and Quantitative Distribution of Radiocarbon Dates 
 
-In this part of the project I will attempted to recreate Puchol et al's (2017) Spatial and Quantitative Distribution of Radiocarbon Dates map. Instead of using the [raster](https://cran.r-project.org/web/packages/raster/vignettes/Raster.pdf) and the [rasterVis](https://cran.r-project.org/web/packages/rasterVis/rasterVis.pdf) packages like they did, I will use the [ggplot2](https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf) and [ggmap](https://cran.r-project.org/web/packages/ggmap/ggmap.pdf). I chose to use the packages instead of the ones used by Puchol et al (2017) because the ggmap package does not require one to download a shapefile and then load it into R markdown, and because the shapefile I found that appeared to be the same as the one used by Puchol et al (2017) required me to purchase it. I tried using a similar, free to download shape file first, but it resulted in an error when I uploaded the shapefile to GitHub and then tried to use the curl command to input it into R markdown. The ggmap package uses the information from Google Maps to create maps and therefore does not require a shapefile to be downloaded.
-
-```{r}
-size <- make_bbox(lon = orig$Longitude, lat = orig$Latitude, f = .1)
-```
-
-Here I have set the parameters for how large my map will be by using the latitude and longitude from the orig dataframe. This command will make sure that the map is an appropriate size and will not produce something too large or too small. 
-
-```{r}
-sq_map <- get_map(location = size, maptype = "hybrid", source = "google")
-```
-
-Here the get_map command generates will retrieve a map, in this case from Google Maps because I told it to by setting source equal to “google”, and it will be a hybrid between a satellite map and a terrain map. The map will be fitted to the dimensions specified with the make_bbox command
-
-```{r}
-ggmap(sq_map) + geom_point(data = orig, mapping = aes(x = orig$Longitude, y = orig$Latitude))
-```
-#Anotate
-```{r}
-RadiocarbonDatesPerSites <- orig$Radiocarbon.sites
-
-ggmap(sq_map) + geom_point(data = orig, mapping = aes(x = orig$Longitude, y = orig$Latitude, color = RadiocarbonDatesPerSites))
-```
-#Anotate
-
-#import picture and talk about the rest of the project
 
 
