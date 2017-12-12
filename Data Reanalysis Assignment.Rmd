@@ -4,15 +4,15 @@ author: Andrew Mark
 output: html_document
 ---
 #Preliminaries
-You will need to install and launch the fallowing packages: [stringr](https://cran.r-project.org/web/packages/stringr/stringr.pdf), [knitr](https://cran.r-project.org/web/packages/knitr/knitr.pdf), [raster](https://cran.r-project.org/web/packages/raster/vignettes/Raster.pdf), [rasterVis](https://cran.r-project.org/web/packages/rasterVis/rasterVis.pdf), and [Bchron](https://cran.r-project.org/web/packages/Bchron/Bchron.pdf).  You will also needd to read Oreto García Puchol, Agustín Diez Castillo, and Salvador Pardo-Gordó's paper [“New insights into the neolithisation process in southwest Europe according to spatial density analysis from calibrated radiocarbon dates”](https://link.springer.com/article/10.1007%2Fs12520-017-0498-1#SupplementaryMaterial), and load that into R using the [curl](https://cran.r-project.org/web/packages/curl/curl.pdf) command and import the data from [Puchol et al 2017 data.csv](https://raw.githubusercontent.com/andym5780/data-reanalysis-assignment/master/Puchol%20et%20al%202017%20data.csv).
+You will need to install and launch the fallowing packages: [stringr](https://cran.r-project.org/web/packages/stringr/stringr.pdf), [knitr](https://cran.r-project.org/web/packages/knitr/knitr.pdf), [ggplot2](https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf), [ggmap](https://cran.r-project.org/web/packages/ggmap/ggmap.pdf), and [Bchron](https://cran.r-project.org/web/packages/Bchron/Bchron.pdf).  You will also needd to read Oreto García Puchol, Agustín Diez Castillo, and Salvador Pardo-Gordó's paper [“New insights into the neolithisation process in southwest Europe according to spatial density analysis from calibrated radiocarbon dates”](https://link.springer.com/article/10.1007%2Fs12520-017-0498-1#SupplementaryMaterial), and load that into R using the [curl](https://cran.r-project.org/web/packages/curl/curl.pdf) command and import the data from [Puchol et al 2017 data.csv](https://raw.githubusercontent.com/andym5780/data-reanalysis-assignment/master/Puchol%20et%20al%202017%20data.csv).
 
 All these packages should be launched
 ```{r}
 library(stringr)
 library(Bchron)
 library(knitr)
-library(raster)
-library(rasterVis)
+library(ggplot2)
+library(ggmap)
 library(curl)
 ```
 
@@ -31,13 +31,15 @@ For my reanalyses of Puchol et al (2017), I will first calculate the average sta
 
 #Imported Database
 
+While I was importing the dataset into R, I noticed that the original dataset (labeled” Puchol et al (2017) original data.csv” on my GitHub data-reanalysis-assignment repository) was missing the Latitude and Longitude components for each site. These values were located in a Google Earth kmz file under supplementary materials on the original paper. I uploaded this Google Earth file to my repository and named it “sites_iberian_peninsula_jaa.kmz.” I tried to figure out a way to input the Latitude and Longitude from Google Earth directly into R, I could not and had to instead import them into the “Puchol et al (2017) original data.csv.” I then saved this as a new csv file titled “Puchol et al (2017) edited data.csv” and uploaded it to GitHub. This is the cvs file I used for the entire project.
+
 ```{r}
-f <- curl("https://raw.githubusercontent.com/andym5780/data-reanalysis-assignment/master/Puchol%20et%20al%202017%20data.csv")
+f <- curl("https://raw.githubusercontent.com/andym5780/data-reanalysis-assignment/master/Puchol%20et%20al%20(2017)%20edited%20data.csv")
 orig <- read.csv(f, header = TRUE)
 head(orig)
 ```
 
-Here I have brought in the original data used by Pulchol et al (2017). They have only provided 165 dates despite the fact that they did these calculation with 834 dates because of this, there might  be differenced in my results compared to theirs. 
+Here I have brought in the edited database used by Pulchol et al (2017). They have only provided 165 dates despite the fact that they did these calculation with 834 dates because of this, there might  be differenced in my results compared to theirs. 
 
 #1 Testing Significant Differences in the Standard Deviations
 Bellow I will test to see if there is a significant difference in the average standard deviations of the original dataset with 834 site and the average standard deviation found in this dataset with 165 dates. I will do this by using an F-test regarding two population standard deviations. I will us a right tailed test to see if the difference is significant because it would seem like if these values are different, then the standard deviation for sd1, which comes from the 834 dates, would be larger. Here my null hypothesis is sd1=sd2, and my alternative hypothesis is sd1>sd2 where sd1 comes from the 834 dates and sd2 comes from the 165 dates.
@@ -103,11 +105,31 @@ Here is a list of all of the 165 calibrated radiocarbon dates and the 95% Highes
 
 #Spatial and Quantitative Distribution of Radiocarbon Dates 
 
+In this part of the project I will attempted to recreate Puchol et al's (2017) Spatial and Quantitative Distribution of Radiocarbon Dates map. Instead of using the [raster](https://cran.r-project.org/web/packages/raster/vignettes/Raster.pdf) and the [rasterVis](https://cran.r-project.org/web/packages/rasterVis/rasterVis.pdf) packages like they did, I will use the [ggplot2](https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf) and [ggmap](https://cran.r-project.org/web/packages/ggmap/ggmap.pdf). I chose to use the packages instead of the ones used by Puchol et al (2017) because the ggmap package does not require one to download a shapefile and then load it into R markdown, and because the shapefile I found that appeared to be the same as the one used by Puchol et al (2017) required me to purchase it. I tried using a similar, free to download shape file first, but it resulted in an error when I uploaded the shapefile to GitHub and then tried to use the curl command to input it into R markdown. The ggmap package uses the information from Google Maps to create maps and therefore does not require a shapefile to be downloaded.
 
+```{r}
+size <- make_bbox(lon = orig$Longitude, lat = orig$Latitude, f = .1)
+```
 
+Here I have set the parameters for how large my map will be by using the latitude and longitude from the orig dataframe. This command will make sure that the map is an appropriate size and will not produce something too large or too small. 
 
+```{r}
+sq_map <- get_map(location = size, maptype = "hybrid", source = "google")
+```
 
+Here the get_map command generates will retrieve a map, in this case from Google Maps because I told it to by setting source equal to “google”, and it will be a hybrid between a satellite map and a terrain map. The map will be fitted to the dimensions specified with the make_bbox command
 
+```{r}
+ggmap(sq_map) + geom_point(data = orig, mapping = aes(x = orig$Longitude, y = orig$Latitude))
+```
+#Anotate
+```{r}
+RadiocarbonDatesPerSites <- orig$Radiocarbon.sites
 
+ggmap(sq_map) + geom_point(data = orig, mapping = aes(x = orig$Longitude, y = orig$Latitude, color = RadiocarbonDatesPerSites))
+```
+#Anotate
+
+#import picture and talk about the rest of the project
 
 
